@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/andybzn/gator/internal/config"
@@ -22,14 +21,26 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	if err := dbConfig.SetUser("andy", logger); err != nil {
-		logger.Fatal(err)
+	appState := state{
+		config: &dbConfig,
 	}
 
-	dbConfig, err = config.Read(logger)
-	if err != nil {
-		logger.Fatal(err)
+	commands := commands{
+		commands: make(map[string]func(*state, command, *log.Logger) error),
 	}
-	fmt.Printf("%s\n", dbConfig.DbUrl)
-	fmt.Printf("%s\n", dbConfig.CurrentUserName)
+	commands.register("login", handlerLogin, logger)
+
+	args := os.Args
+	if len(args) < 2 {
+		logger.Fatal("Usage: cli <command> [arguments...]")
+	}
+
+	command := command{
+		name: args[1],
+		args: args[2:],
+	}
+
+	if err := commands.run(&appState, command, logger); err != nil {
+		log.Fatal(err)
+	}
 }
