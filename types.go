@@ -2,11 +2,13 @@ package main
 
 import (
 	"github.com/andybzn/gator/internal/config"
+	"github.com/andybzn/gator/internal/database"
 	"github.com/charmbracelet/log"
 )
 
 type state struct {
-	config *config.Config
+	database *database.Queries
+	config   *config.Config
 }
 
 type command struct {

@@ -1,10 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"os"
 
 	"github.com/andybzn/gator/internal/config"
+	"github.com/andybzn/gator/internal/database"
 	"github.com/charmbracelet/log"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -21,14 +25,22 @@ func main() {
 		logger.Fatal(err)
 	}
 
+	db, err := sql.Open("postgres", dbConfig.DbUrl)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	dbQueries := database.New(db)
+
 	appState := state{
-		config: &dbConfig,
+		database: dbQueries,
+		config:   &dbConfig,
 	}
 
 	commands := commands{
 		commands: make(map[string]func(*state, command, *log.Logger) error),
 	}
 	commands.register("login", handlerLogin, logger)
+	commands.register("register", handlerRegister, logger)
 
 	args := os.Args
 	if len(args) < 2 {
