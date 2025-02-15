@@ -27,3 +27,6 @@ go.work.sum
 
 # Temporary suppression
 generate.go
+data/
+.direnv/
+gator
