@@ -73,3 +73,22 @@ func handlerLogin(s *state, cmd command, logger *log.Logger) error {
 
 	return nil
 }
+
+func handlerUsers(s *state, _ command, logger *log.Logger) error {
+	users, err := s.database.GetUsers(context.Background())
+	if err != nil {
+		logger.Error(err)
+		return err
+	}
+
+	loggedInUser := s.config.CurrentUserName
+	for _, user := range users {
+		if user.Name == loggedInUser {
+			fmt.Printf("* %s (current)\n", user.Name)
+		} else {
+			fmt.Printf("* %s\n", user.Name)
+		}
+	}
+
+	return nil
+}
