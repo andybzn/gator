@@ -45,6 +45,7 @@ func main() {
 	commands.register("users", handlerUsers, logger)
 	commands.register("agg", handlerAgg, logger)
 	commands.register("addfeed", handlerAddFeed, logger)
+	commands.register("feeds", handlerFeeds, logger)
 
 	args := os.Args
 	if len(args) < 2 {

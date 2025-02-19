@@ -35,3 +35,19 @@ func handlerAddFeed(s *state, cmd command, logger *log.Logger) error {
 
 	return nil
 }
+
+func handlerFeeds(s *state, _ command, logger *log.Logger) error {
+	feeds, err := s.database.GetFeeds(context.Background())
+	if err != nil {
+		logger.Error("could not retreive feeds", "err", err)
+		return fmt.Errorf("could not retreive feeds: %v", err)
+	}
+
+	fmt.Printf("found %d feeds:\n", len(feeds))
+	fmt.Printf("Feed Name, Feed URL, User\n")
+	for _, feed := range feeds {
+		fmt.Printf("%s , %s , %s\n", feed.Name, feed.Url, feed.Username)
+	}
+
+	return nil
+}
