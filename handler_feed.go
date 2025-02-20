@@ -23,7 +23,7 @@ func handlerAgg(s *state, _ command, logger *log.Logger) error {
 	return nil
 }
 
-func handlerAddFeed(s *state, cmd command, logger *log.Logger) error {
+func handlerAddFeed(s *state, cmd command, user database.User, logger *log.Logger) error {
 	if len(cmd.args) < 2 {
 		logger.Errorf("No feed details provided. Usage %s <name> <url>", cmd.name)
 		return fmt.Errorf("No feed details provided. Usage %s <name> <url>", cmd.name)
@@ -38,7 +38,7 @@ func handlerAddFeed(s *state, cmd command, logger *log.Logger) error {
 
 	cmd.args = cmd.args[1:]
 
-	if err := handlerFollow(s, cmd, logger); err != nil {
+	if err := handlerFollow(s, cmd, user, logger); err != nil {
 		return err
 	}
 
@@ -61,7 +61,7 @@ func handlerFeeds(s *state, _ command, logger *log.Logger) error {
 	return nil
 }
 
-func handlerFollow(s *state, cmd command, logger *log.Logger) error {
+func handlerFollow(s *state, cmd command, user database.User, logger *log.Logger) error {
 	if len(cmd.args) == 0 {
 		logger.Errorf("No feed url provided. Usage %s <url>", cmd.name)
 		return fmt.Errorf("No feed url provided. Usage %s <url>", cmd.name)
@@ -69,12 +69,6 @@ func handlerFollow(s *state, cmd command, logger *log.Logger) error {
 	feedUrl := cmd.args[0]
 
 	ctx := context.Background()
-
-	user, err := s.database.GetUser(ctx, s.config.CurrentUserName)
-	if err != nil {
-		logger.Error("Could not retrieve user details", "err", err)
-		return fmt.Errorf("Could not retrieve user details: %v", err)
-	}
 
 	feed, err := s.database.GetFeedByUrl(ctx, feedUrl)
 	if err != nil {
@@ -108,13 +102,8 @@ func handlerFollow(s *state, cmd command, logger *log.Logger) error {
 	return nil
 }
 
-func handlerFollowing(s *state, _ command, logger *log.Logger) error {
+func handlerFollowing(s *state, _ command, user database.User, logger *log.Logger) error {
 	ctx := context.Background()
-	user, err := s.database.GetUser(ctx, s.config.CurrentUserName)
-	if err != nil {
-		logger.Error("Could not retrieve user details", "err", err)
-		return fmt.Errorf("Could not retrieve user details: %v", err)
-	}
 
 	feeds, err := s.database.GetFeedFollowsForUser(ctx, user.ID)
 	if err != nil {
@@ -123,12 +112,35 @@ func handlerFollowing(s *state, _ command, logger *log.Logger) error {
 	}
 
 	if len(feeds) == 0 {
-		logger.Error("User is not following any feeds")
-		return fmt.Errorf("User is not following any feeds")
+		return nil
 	}
 
 	for _, feed := range feeds {
 		fmt.Println(feed.Name)
+	}
+
+	return nil
+}
+
+func handlerUnfollow(s *state, cmd command, user database.User, logger *log.Logger) error {
+	if len(cmd.args) == 0 {
+		logger.Errorf("No feed url provided. Usage %s <url>", cmd.name)
+		return fmt.Errorf("No feed url provided. Usage %s <url>", cmd.name)
+	}
+
+	ctx := context.Background()
+	feed, err := s.database.GetFeedByUrl(ctx, cmd.args[0])
+	if err != nil {
+		logger.Error("Could not fetch feed data", "err", err)
+		return fmt.Errorf("Could not fetch feed data: %v", err)
+	}
+
+	if err := s.database.RemoveFeedFollow(ctx, database.RemoveFeedFollowParams{
+		FeedID: feed.ID,
+		UserID: user.ID,
+	}); err != nil {
+		logger.Error("Could not unfollow feed", "err", err)
+		return fmt.Errorf("Could not unfollow feed: %v", err)
 	}
 
 	return nil
