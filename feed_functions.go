@@ -85,3 +85,34 @@ func addFeed(s *state, name, url string, logger *log.Logger) error {
 
 	return nil
 }
+
+func scrapeFeeds(s *state, logger *log.Logger) error {
+	ctx := context.Background()
+	nextFeed, err := s.database.GetNextFeedToFetch(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := s.database.MarkFeedFetched(ctx, database.MarkFeedFetchedParams{
+		ID: nextFeed.ID,
+	}); err != nil {
+		return err
+	}
+
+	feed, err := fetchFeed(ctx, nextFeed.Url, logger)
+	if err != nil {
+		return err
+	}
+
+	if len(feed.Channel.Item) == 0 {
+		return nil
+	}
+
+	fmt.Println("Found feed items!")
+	for _, item := range feed.Channel.Item {
+		fmt.Printf("* Title: %s\n", item.Title)
+
+	}
+
+	return nil
+}

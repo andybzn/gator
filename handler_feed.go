@@ -10,17 +10,23 @@ import (
 	"github.com/google/uuid"
 )
 
-func handlerAgg(s *state, _ command, logger *log.Logger) error {
-	feedUrl := "https://wagslane.dev/index.xml"
+func handlerAgg(s *state, cmd command, logger *log.Logger) error {
+	if len(cmd.args) < 1 {
+		logger.Errorf("No time duration provided. Usage %s <duration(s|m|h)>", cmd.name)
+		return fmt.Errorf("No time duration provided. Usage %s <duration(s|m|h)>", cmd.name)
+	}
 
-	feedData, err := fetchFeed(context.Background(), feedUrl, logger)
+	timeBetweenRequests, err := time.ParseDuration(cmd.args[0])
 	if err != nil {
 		return err
 	}
 
-	fmt.Println(*feedData)
+	fmt.Printf("Collecting feeds every %v", timeBetweenRequests)
 
-	return nil
+	ticker := time.NewTicker(timeBetweenRequests)
+	for ; ; <-ticker.C {
+		scrapeFeeds(s, logger)
+	}
 }
 
 func handlerAddFeed(s *state, cmd command, user database.User, logger *log.Logger) error {
