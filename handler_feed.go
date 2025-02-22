@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/andybzn/gator/internal/database"
@@ -147,6 +148,41 @@ func handlerUnfollow(s *state, cmd command, user database.User, logger *log.Logg
 	}); err != nil {
 		logger.Error("Could not unfollow feed", "err", err)
 		return fmt.Errorf("Could not unfollow feed: %v", err)
+	}
+
+	return nil
+}
+
+func handlerBrowse(s *state, cmd command, user database.User, logger *log.Logger) error {
+	limit := 2
+	if len(cmd.args) > 0 {
+		if parsedLimit, err := strconv.Atoi(cmd.args[0]); err == nil {
+			limit = parsedLimit
+		} else {
+			logger.Error(err)
+			return fmt.Errorf("Unable to parse limit: %v", err)
+		}
+	}
+
+	posts, err := s.database.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  int32(limit),
+	})
+	if err != nil {
+		logger.Error(err)
+		return fmt.Errorf("Unable to get posts: %v", err)
+	}
+
+	if len(posts) == 0 {
+		return nil
+	}
+
+	for _, post := range posts {
+		fmt.Printf("%s (%s)\n", post.FeedName, post.PublishedAt.Format("Mon 2 Jan"))
+		fmt.Printf("~~~ %s ~~~\n", post.Title)
+		fmt.Printf("    %s\n", post.Description)
+		fmt.Printf("Link: %s\n", post.Url)
+		fmt.Println("")
 	}
 
 	return nil

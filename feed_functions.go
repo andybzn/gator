@@ -7,6 +7,7 @@ import (
 	"html"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/andybzn/gator/internal/database"
@@ -108,10 +109,28 @@ func scrapeFeeds(s *state, logger *log.Logger) error {
 		return nil
 	}
 
-	fmt.Println("Found feed items!")
-	for _, item := range feed.Channel.Item {
-		fmt.Printf("* Title: %s\n", item.Title)
+	now := time.Now().UTC()
+	for _, feedItem := range feed.Channel.Item {
+		pubDate, err := time.Parse(time.RFC1123Z, feedItem.PubDate)
+		if err != nil {
+			fmt.Println(fmt.Errorf("%v", err))
+		}
 
+		if err := s.database.CreatePost(ctx, database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   now,
+			UpdatedAt:   now,
+			Title:       feedItem.Title,
+			Url:         feedItem.Link,
+			Description: feedItem.Description,
+			PublishedAt: pubDate,
+			FeedID:      nextFeed.ID,
+		}); err != nil {
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				continue
+			}
+			fmt.Println(fmt.Errorf("%v", err))
+		}
 	}
 
 	return nil
